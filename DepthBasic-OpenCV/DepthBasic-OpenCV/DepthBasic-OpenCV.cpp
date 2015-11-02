@@ -17,44 +17,6 @@ inline void SafeRelease(Interface *& pInterfaceToRelease)
 		pInterfaceToRelease = NULL;
 	}
 }
-/*
-int isXY(int x, int y)
-{
-if (((x - 112)*(x - 112) + (y - 156)*(y - 156)) < 18) return 1;
-if (((x - 112)*(x - 112) + (y - 356)*(y - 356)) < 18) return 1;
-if (((x - 312)*(x - 312) + (y - 156)*(y - 156)) < 18) return 1;
-if (((x - 312)*(x - 312) + (y - 356)*(y - 356)) < 18) return 1;
-if (((x - 212)*(x - 212) + (y - 256)*(y - 256)) < 18) return 1;
-return 0;
-}
-
-int isZ(int x)
-{
-if ((x > 990)  & (x < 1010)) return 1;
-if ((x > 1190) & (x < 1210)) return 1;
-if ((x > 1390) & (x < 1410)) return 1;
-if ((x > 1590) & (x < 1610)) return 1;
-if ((x > 1790) & (x < 1810)) return 1;
-if ((x > 1990) & (x < 2010)) return 1;
-return 0;
-}
-
-int isHand(Mat_<Vec4b> show,int x,int y)
-{
-int judge = 0;
-for (int i = -1; i <= 1; i++)
-for (int j = -1; j <= 1; j++)
-{
-cv::Vec4b val = show.at<cv::Vec4b>(x+5*i, y+5*j);
-int red = val[0];
-int green = val[1];
-int blue = val[2];
-int light = (red * 299 + green * 587 + blue * 114) / 1000;
-if (light > 10) judge++;
-}
-if (judge > 7) return 1;
-return 0;
-}*/
 
 //定义Kinect方法类
 class Kinect
@@ -185,7 +147,6 @@ HRESULT	Kinect::InitKinect()
 		printf("No ready Kinect found! \n");
 		return E_FAIL;
 	}
-
 	return hr;
 }
 
@@ -218,29 +179,20 @@ void Kinect::Update()
 				if (bTracked)
 				{
 					Joint joints[JointType_Count];
-					FLOAT xr, yr;
+
 /*					HandState leftHandState = HandState_Unknown; //获取手的状态,用不上
 					HandState rightHandState = HandState_Unknown;
 					pBody->get_HandRightState(&rightHandState); */
-					hr = pBody->GetJoints(_countof(joints), joints);
-					cam_rhandpoint = joints[11].Position;
+
 //					yr =  -0.647*joints[11].Position.Z + 2.1453;  //转换系数  系统自带真好用/微笑
 //					xr = -0.6443*joints[11].Position.Z + 1.9619;
 //					dps_rhandpoint.Y = int(256 + 256 * joints[11].Position.X*xr);//图像上Y是body的x
 //					dps_rhandpoint.X = int(212 - 212 * joints[11].Position.Y*yr);
+
+					hr = pBody->GetJoints(_countof(joints), joints);
+					cam_rhandpoint = joints[11].Position;
 					m_pMapper->MapCameraPointToDepthSpace(cam_rhandpoint, &dps_rhandpoint);
 					cout << cam_rhandpoint.Z << endl;
-					/*	if (isXY(rhandpoint.x, rhandpoint.y) )//用来校对body到depth
-					{
-					printf("Person %d : 右手 %2f %2f %2f\n", i, joints[11].Position.X, joints[11].Position.Y, joints[11].Position.Z * 1000);
-					if (isZ(rhanddepth))
-					{
-					outfile << "RightHand  " << joints[11].Position.X << "   " << joints[11].Position.Y << "   " << joints[11].Position.Z * 1000 << endl;
-					system("color F0");
-					printf("Person %d : 右手 %2f %2f %2f\n", i, joints[11].Position.X, joints[11].Position.Y, joints[11].Position.Z * 1000);
-					system("color 0F");
-					}
-					}*/
 				}
 			}
 		}
@@ -285,7 +237,6 @@ void Kinect::Update()
 
 		if (SUCCEEDED(hr))
 		{
-			//这个if是干嘛的真是F了doge
 			//把数据从pColorFrame帧数据里放到pBuffer里来。
 			if (imageFormat == ColorImageFormat_Bgra)
 			{
@@ -302,8 +253,6 @@ void Kinect::Update()
 				hr = E_FAIL;
 			}
 		}
-
-
 
 		//========================
 
@@ -329,13 +278,10 @@ void Kinect::Update()
 
 		if (SUCCEEDED(hr))
 		{
-			//好好说中文不行吗  为得到深度完整范围（包括略不可信的远场深度），我们最大可能的设置了这个阈值。
-			// In order to see the full range of depth (including the less reliable far field depth)
-			// we are setting nDepthMaxDistance to the extreme potential depth threshold
+			//为得到深度完整范围（包括略不可信的远场深度），我们最大可能的设置了这个阈值。
 			//nDepthMaxDistance = USHRT_MAX;
 			//nDepthMaxDistance = 0x05f;
 			//如果你只想得到可靠深度，就把我下面的下面这行的////去掉。你猜我去不去
-			// Note:  If you wish to filter by reliable depth distance, uncomment the following line.
 			hr = pDepthFrame->get_DepthMaxReliableDistance(&nDepthMaxDistance);
 		}
 
@@ -373,17 +319,6 @@ void Kinect::ProcessDepth(const UINT16* pBuffer, RGBQUAD *cBuffer, int nWidth, i
 			while (pBuffer < pBufferEnd)
 			{
 				USHORT depth = *pBuffer;
-
-				//为了转换为一个字节，我们舍弃了大部分重要的位
-				// To convert to a byte, we're discarding the most-significant
-				// rather than least-significant bits.
-				//我们保留了细节，尽管强度会比较渣， 可信距离外的值被设为黑色（0）
-				// We're preserving detail, although the intensity will "wrap."
-				// Values outside the reliable depth range are mapped to 0 (black).
-				//注意：使用本循环中的三目运算符将会降低性能，写产品代码时考虑用查询表
-				// Note: Using conditionals in this loop could degrade performance.
-				// Consider using a lookup table instead when writing production code.
-
 				BYTE intensity = static_cast<BYTE>((depth >= nMinDepth) && (depth <= nMaxDepth) ? 255 : 0);// (depth % 256) : 0);
 
 				pRGBX->rgbRed = intensity;
@@ -395,19 +330,6 @@ void Kinect::ProcessDepth(const UINT16* pBuffer, RGBQUAD *cBuffer, int nWidth, i
 			Mat DepthImage(nHeight, nWidth, CV_8UC4, m_pDepthRGBX);
 			Mat_<Vec4b> show = DepthImage.clone();
 
-/*			for (int i = 0; i<DepthImage.rows; i++)
-			{
-				uchar* data = show.ptr<uchar>(i);
-				for (int j = 0; j<DepthImage.cols; j++)
-				{
-					if (pow(double(i - rhandpoint.x), 2) + pow(double(j - rhandpoint.y), 2) - 900.0 > 0)
-					{
-						data[3*j] = 0;
-						data[3 * j + 1] = 0;
-						data[3 * j + 2] = 0;
-					}
-				}
-			}*/
 			float sr;
 			sr = pow((208.32*pow(2.71828182, -1.316*cam_rhandpoint.Z)), 2);
 			for (int x = 0; x < DepthImage.rows; x++)//depth中手部以外抹黑
@@ -415,30 +337,36 @@ void Kinect::ProcessDepth(const UINT16* pBuffer, RGBQUAD *cBuffer, int nWidth, i
 					if (pow(double(x - dps_rhandpoint.Y), 2) + pow(double(y - dps_rhandpoint.X), 2) - sr > 0.00001)
 						show(x, y) = Vec4b(0, 0, 0);
 
+			//以下用于绘点
+			/*		for (int x = 0; x < DepthImage.rows; x++)//手部
+			for (int y = 0; y < DepthImage.cols; y++)
+				if (pow(double(x - rhandpoint.x), 2) + pow(double(y - rhandpoint.y), 2) - 25.0 < 0.00000000001)
+					show(x, y) = Vec4b(0, 0, 255);*/
 
 			//==============color image============
 
 			// Draw the data with OpenCV
 
-//			m_pColorRGBX = cBuffer;
-//			Mat ColorImage(cHeight, cWidth, CV_8UC4, m_pColorRGBX);
-//			Mat_<Vec4b> ColorImages = ColorImage.clone();
-
-			Mat ColorImage(cHeight, cWidth, CV_8UC4, cBuffer);
-//			Mat ShowImage(cHeight, cWidth, CV_8UC4, Scalar(0, 0, 0));
+			m_pColorRGBX = cBuffer;
+			Mat ColorImage(cHeight, cWidth, CV_8UC4, m_pColorRGBX);
 			Mat_<Vec4b> ColorImages = ColorImage.clone();
+
+//			Mat ColorImage(cHeight, cWidth, CV_8UC4, cBuffer);
+//			Mat ShowImage(cHeight, cWidth, CV_8UC4, Scalar(0, 0, 0));
+//			Mat_<Vec4b> ColorImages = ColorImage.clone();
 //			Mat_<Vec4b> ShowImages = ShowImage.clone();
-			float* pData = (float*)ColorImages.data;
+//			float* pData = (float*)ColorImages.data;
 //			float* sData = (float*)ShowImages.data;
 
-
-
-//==============color image copy============
 			DepthSpacePoint dpPoint;
 			ColorSpacePoint cPoint;
+			cPoint.X = 500;
+			cPoint.Y = 500;
+			cout << ColorImages(cPoint.X, cPoint.Y) << endl;
+
 			for (int x = (dps_rhandpoint.X - 60); x < (dps_rhandpoint.X + 60); x++)//手部  这一段准备将depth里手的点对应到color里
 			{
-				uchar* data = ColorImage.ptr<uchar>(x);
+//				uchar* data = ColorImage.ptr<uchar>(x);
 				for (int y = 0; y < DepthImage.cols; y++)
 					if (pow(double(x - dps_rhandpoint.X), 2) + pow(double(y - dps_rhandpoint.Y), 2) - 3600.0 < 0.000001)
 						if (ppBuffer[x, y] > 0)
@@ -446,43 +374,14 @@ void Kinect::ProcessDepth(const UINT16* pBuffer, RGBQUAD *cBuffer, int nWidth, i
 							dpPoint.X = x;
 							dpPoint.Y = y;
 							m_pMapper->MapDepthPointToColorSpace(dpPoint, ppBuffer[x, y], &cPoint);
-//							cout<<ColorImages.at<uchar>(int(cPoint.X), int(cPoint.Y));
-//							pData = ColorImages.ptr<float>(int(cPoint.X));
-//							sData = ShowImages.ptr<float>(int(cPoint.X));
-//							sData[int(cPoint.Y)]=pData[int(cPoint.Y)];
-//							showImage(x,y) = showImages(x,y);
-//							uchar* data2 = ColorImages.ptr<uchar>(int(cPoint.X));
-//							data[3 * int(cPoint.Y)] = data2[3 * int(cPoint.Y)];
-//							data[3 * int(cPoint.Y) + 1] = data2[3 * int(cPoint.Y) + 1];
-//							data[3 * int(cPoint.Y) + 2] = data2[3 * int(cPoint.Y) + 2];
-//							ShowImages.at<Vec4b>(int(cPoint.X), int(cPoint.Y))[0] = ColorImages(int(cPoint.X), int(cPoint.Y))[0];
-//							ShowImages(int(cPoint.X), int(cPoint.Y))[1] = ColorImages(int(cPoint.X), int(cPoint.Y))[1];
-//							ShowImages(int(cPoint.X), int(cPoint.Y))[2] = ColorImages(int(cPoint.X), int(cPoint.Y))[2];
+//							ColorImages(cPoint.X, cPoint.Y)= Vec4b(0, 0, 255);
 						}
 			}
-				
 
-			/*//用于采集数据校准body→depth
-			if (isHand(show, 212, 256))
-			{
-			printf("Person : 右手 %2d,%2d,%2d\n",rhandpoint.x, rhandpoint.y, rhanddepth);
-			if (isZ(rhanddepth))
-			{
-			outfile << "CT  " << rhandpoint.x << "  " << rhandpoint.y << "  " << rhanddepth << endl;
-			system("color F0");
-			printf("Person : 右手 %2d,%2d,%2d\n", rhandpoint.x, rhandpoint.y, rhanddepth);
-			system("color 0F");
-			}
-			}
-			*/
-			//以下用于绘点
-			/*		for (int x = 0; x < DepthImage.rows; x++)//手部
-			for (int y = 0; y < DepthImage.cols; y++)
-			if (pow(double(x - rhandpoint.x), 2) + pow(double(y - rhandpoint.y), 2) - 25.0 < 0.00000000001)
-			show(x, y) = Vec4b(0, 0, 255);*/
-			//		resize(showImage, showImag, Size(cWidth / 2, cHeight / 2));
-//			imshow("ColorImage", ColorImages);
+//			resize(showImage, showImag, Size(cWidth / 2, cHeight / 2));
+			imshow("ColorImage", ColorImages);
 			imshow("DepthImage", show);
+
 //			ofstream outfile("E:\\test\\color.txt", ios::in | ios::trunc);
 //			outfile << ColorImages[235,562]<<endl<<ShowImages[235, 562];
 //			outfile << ColorImages(10, 80)[0] << endl;// << ColorImages(10, 80)[1] << endl;

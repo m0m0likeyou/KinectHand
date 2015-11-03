@@ -1,4 +1,4 @@
-﻿生成启动时间为 2015/11/2 22:39:59。
+﻿生成启动时间为 2015/11/3 9:31:41。
      1>项目“C:\Users\yours\Documents\GitHub\KinectHand\DepthBasic-OpenCV\DepthBasic-OpenCV\DepthBasic-OpenCV.vcxproj”在节点 2 上(Build 个目标)。
      1>ClCompile:
          C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /sdl /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Yu"stdafx.h" /Fp"Debug\DepthBasic-OpenCV.pch" /Fo"Debug\\" /Fd"Debug\vc140.pdb" /Gd /TP /analyze- /errorReport:prompt "DepthBasic-OpenCV.cpp"
@@ -16,4 +16,4 @@
 
 已成功生成。
 
-已用时间 00:00:01.88
+已用时间 00:00:02.46

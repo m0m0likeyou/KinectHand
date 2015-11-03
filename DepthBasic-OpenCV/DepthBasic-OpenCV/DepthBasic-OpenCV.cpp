@@ -337,8 +337,8 @@ void Kinect::ProcessDepth(const UINT16* pBuffer, RGBQUAD *cBuffer, int nWidth, i
 					if (pow(double(x - dps_rhandpoint.Y), 2) + pow(double(y - dps_rhandpoint.X), 2) - sr > 0.00001)
 						show(x, y) = Vec4b(0, 0, 0);
 
-			//以下用于绘点
-			/*		for (int x = 0; x < DepthImage.rows; x++)//手部
+			//以下用于手部的绘点
+			/*		for (int x = 0; x < DepthImage.rows; x++)
 			for (int y = 0; y < DepthImage.cols; y++)
 				if (pow(double(x - rhandpoint.x), 2) + pow(double(y - rhandpoint.y), 2) - 25.0 < 0.00000000001)
 					show(x, y) = Vec4b(0, 0, 255);*/
@@ -347,16 +347,14 @@ void Kinect::ProcessDepth(const UINT16* pBuffer, RGBQUAD *cBuffer, int nWidth, i
 
 			// Draw the data with OpenCV
 
-			m_pColorRGBX = cBuffer;
-			Mat ColorImage(cHeight, cWidth, CV_8UC4, m_pColorRGBX);
-			Mat_<Vec4b> ColorImages = ColorImage.clone();
-
-//			Mat ColorImage(cHeight, cWidth, CV_8UC4, cBuffer);
-//			Mat ShowImage(cHeight, cWidth, CV_8UC4, Scalar(0, 0, 0));
+//			m_pColorRGBX = cBuffer;   //各种赋值方式...最后不是这里的问题- -
+//			Mat ColorImage(cHeight, cWidth, CV_8UC4, m_pColorRGBX);
 //			Mat_<Vec4b> ColorImages = ColorImage.clone();
+
+			Mat ColorImage(cHeight, cWidth, CV_8UC4, cBuffer);
+//			Mat ShowImage(cHeight, cWidth, CV_8UC4, Scalar(0, 0, 0));
+			Mat_<Vec4b> ColorImages = ColorImage.clone();
 //			Mat_<Vec4b> ShowImages = ShowImage.clone();
-//			float* pData = (float*)ColorImages.data;
-//			float* sData = (float*)ShowImages.data;
 
 			DepthSpacePoint dpPoint;
 			ColorSpacePoint cPoint;

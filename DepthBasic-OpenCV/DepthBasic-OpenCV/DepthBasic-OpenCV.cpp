@@ -6,7 +6,6 @@
 #include <Kinect.h>// Kinect Header files  也就是曾经的nuiapi.h
 using namespace cv;
 using namespace std;
-ofstream outfile("E:\\test\\hand.txt", ios::in | ios::trunc);
 // Safe release for interfaces
 template<class Interface>   //什么鬼
 inline void SafeRelease(Interface *& pInterfaceToRelease)
@@ -101,6 +100,7 @@ HRESULT	Kinect::InitKinect()
 	cam_rhandpoint.X = 0;
 	cam_rhandpoint.Y = 0;
 	cam_rhandpoint.Z = 0;
+
 	hr = GetDefaultKinectSensor(&m_pKinectSensor);
 	if (FAILED(hr))
 	{
@@ -127,6 +127,7 @@ HRESULT	Kinect::InitKinect()
 			hr = pDepthFrameSource->OpenReader(&m_pDepthFrameReader);
 		}
 		SafeRelease(pDepthFrameSource);
+
 
 		if (SUCCEEDED(hr))
 		{
@@ -192,29 +193,31 @@ void Kinect::Update()
 					hr = pBody->GetJoints(_countof(joints), joints);
 					cam_rhandpoint = joints[11].Position;
 					m_pMapper->MapCameraPointToDepthSpace(cam_rhandpoint, &dps_rhandpoint);
-					cout << cam_rhandpoint.Z << endl;
+//					cout << cam_rhandpoint.Z << endl;
 				}
 			}
 		}
 	}
 	SafeRelease(pBodyFrame);
+
 	if (SUCCEEDED(hr))  hr = m_pColorFrameReader->AcquireLatestFrame(&pColorFrame);//跳过对color的检查（说起来这些函数的hr根本没用嘛- -
 	if (SUCCEEDED(hr))  hr = m_pDepthFrameReader->AcquireLatestFrame(&pDepthFrame);//需要同时采集吗？
-	if (SUCCEEDED(hr))  //这一堆在对depthFrame操作，获取其w,h以及最大最小置信范围。
+	if (SUCCEEDED(hr))  
 	{
 		IFrameDescription* pFrameDescription = NULL;
 		int nWidth = 0;
 		int nHeight = 0;
-		int cWidth = 0;
-		int cHeight = 0;
 		USHORT nDepthMinReliableDistance = 0;
 		USHORT nDepthMaxDistance = 0;
-		ColorImageFormat imageFormat = ColorImageFormat_None;
 		UINT nBufferSize = 0;
 		UINT16 *pBuffer = NULL;
+
+		int cWidth = 0;
+		int cHeight = 0;
+		ColorImageFormat imageFormat = ColorImageFormat_None;
 		RGBQUAD *cBuffer = NULL;
 
-		//========================
+		//========================color
 		if (SUCCEEDED(hr))
 		{
 			hr = pColorFrame->get_FrameDescription(&pFrameDescription);
@@ -240,7 +243,7 @@ void Kinect::Update()
 			//把数据从pColorFrame帧数据里放到pBuffer里来。
 			if (imageFormat == ColorImageFormat_Bgra)
 			{
-				hr = pColorFrame->AccessRawUnderlyingBuffer(&nBufferSize, reinterpret_cast<BYTE**>(&cBuffer));   //看不懂！！！xixi
+				hr = pColorFrame->AccessRawUnderlyingBuffer(&nBufferSize, reinterpret_cast<BYTE**>(&cBuffer));   //看不懂！！
 			}
 			else if (m_pColorRGBX)
 			{
@@ -253,8 +256,9 @@ void Kinect::Update()
 				hr = E_FAIL;
 			}
 		}
+		//================color
 
-		//========================
+		//========================这一堆在对depthFrame操作，获取其w,h以及最大最小置信范围。
 
 		if (SUCCEEDED(hr))
 		{
@@ -279,12 +283,12 @@ void Kinect::Update()
 		if (SUCCEEDED(hr))
 		{
 			//为得到深度完整范围（包括略不可信的远场深度），我们最大可能的设置了这个阈值。
-			//nDepthMaxDistance = USHRT_MAX;
+			nDepthMaxDistance = USHRT_MAX;
 			//nDepthMaxDistance = 0x05f;
-			//如果你只想得到可靠深度，就把我下面的下面这行的////去掉。你猜我去不去
-			hr = pDepthFrame->get_DepthMaxReliableDistance(&nDepthMaxDistance);
+			//如果你只想得到可靠深度，就把我下面的下面这行的////去掉。
+			//hr = pDepthFrame->get_DepthMaxReliableDistance(&nDepthMaxDistance);
 		}
-
+		 
 		if (SUCCEEDED(hr))
 		{
 			hr = pDepthFrame->AccessUnderlyingBuffer(&nBufferSize, &pBuffer);
@@ -294,9 +298,10 @@ void Kinect::Update()
 
 		if (SUCCEEDED(hr))
 		{
-			ProcessDepth(pBuffer, cBuffer, nWidth, nHeight, cWidth, cHeight, int(cam_rhandpoint.Z*1000 - 50), int(cam_rhandpoint.Z * 1000 + 50));//加入color
+			//ProcessDepth(pBuffer, cBuffer, nWidth, nHeight, cWidth, cHeight, int(cam_rhandpoint.Z*1000 - 50), int(cam_rhandpoint.Z * 1000 + 50));//加入color
 		  //ProcessDepth( pBuffer, nWidth, nHeight, rhanddepth-50, rhanddepth+50);//手前后
-		  // ProcessDepth(pBuffer, cBuffer, nWidth, nHeight, cWidth, cHeight, nDepthMinReliableDistance, nDepthMaxDistance);//都显示
+
+		   ProcessDepth(pBuffer, cBuffer, nWidth, nHeight, cWidth, cHeight, nDepthMinReliableDistance, nDepthMaxDistance);//都显示
 		}
 
 		SafeRelease(pFrameDescription);
@@ -312,30 +317,45 @@ void Kinect::ProcessDepth(const UINT16* pBuffer, RGBQUAD *cBuffer, int nWidth, i
 	if (m_pDepthRGBX && pBuffer && (nWidth == cDepthWidth) && (nHeight == cDepthHeight))
 		if (m_pColorRGBX &&cBuffer && (cWidth == cColorWidth) && (cHeight == cColorHeight))
 		{
+			cout << "1";
 			RGBQUAD* pRGBX = m_pDepthRGBX;
-			// end pixel is start + width*height - 1
 			const UINT16* pBufferEnd = pBuffer + (nWidth * nHeight);
-			const UINT16* ppBuffer = pBufferEnd - (nWidth * nHeight);
+			const UINT16* qBuffer = pBufferEnd - (nWidth * nHeight);
+			USHORT ppBuffer[424][512] = {};
+			ofstream outfile("E:\\test\\12345678.txt", ios::in | ios::trunc);
+			int i = 0;
+			int j = 0;
+
+			for (int i = 0; i < nWidth; i++)
+				for (int j = 0; j < nHeight; j++)
+				{
+//					ppBuffer[i][j] = depth;
+					outfile << ushort(*qBuffer)<<"|";
+					++qBuffer;
+				}
+//			pBuffer = pBufferEnd - (nWidth*nHeight);
+
 			while (pBuffer < pBufferEnd)
 			{
 				USHORT depth = *pBuffer;
-				BYTE intensity = static_cast<BYTE>((depth >= nMinDepth) && (depth <= nMaxDepth) ? 255 : 0);// (depth % 256) : 0);
-
+				BYTE intensity = static_cast<BYTE>((depth >= nMinDepth) && (depth <= nMaxDepth) ? (depth % 255):0);
 				pRGBX->rgbRed = intensity;
 				pRGBX->rgbGreen = intensity;
 				pRGBX->rgbBlue = intensity;
+//				outfile << ushort(depth)<<"|";
 				++pRGBX;
 				++pBuffer;
 			}
+
 			Mat DepthImage(nHeight, nWidth, CV_8UC4, m_pDepthRGBX);
 			Mat_<Vec4b> show = DepthImage.clone();
 
-			float sr;
+/*			float sr;
 			sr = pow((208.32*pow(2.71828182, -1.316*cam_rhandpoint.Z)), 2);
 			for (int x = 0; x < DepthImage.rows; x++)//depth中手部以外抹黑
 				for (int y = 0; y < DepthImage.cols; y++)
 					if (pow(double(x - dps_rhandpoint.Y), 2) + pow(double(y - dps_rhandpoint.X), 2) - sr > 0.00001)
-						show(x, y) = Vec4b(0, 0, 0);
+						show(x, y) = Vec4b(0, 0, 0);*/
 
 			//以下用于手部的绘点
 			/*		for (int x = 0; x < DepthImage.rows; x++)
@@ -360,18 +380,19 @@ void Kinect::ProcessDepth(const UINT16* pBuffer, RGBQUAD *cBuffer, int nWidth, i
 			ColorSpacePoint cPoint;
 			cPoint.X = 500;
 			cPoint.Y = 500;
-			cout << ColorImages(cPoint.X, cPoint.Y) << endl;
+//			cout << ColorImages(cPoint.X, cPoint.Y) << endl;
 
-			for (int x = (dps_rhandpoint.X - 60); x < (dps_rhandpoint.X + 60); x++)//手部  这一段准备将depth里手的点对应到color里
+			for (int x = 0; x < 100; x++)//手部  这一段准备将depth里手的点对应到color里
 			{
 //				uchar* data = ColorImage.ptr<uchar>(x);
-				for (int y = 0; y < DepthImage.cols; y++)
-					if (pow(double(x - dps_rhandpoint.X), 2) + pow(double(y - dps_rhandpoint.Y), 2) - 3600.0 < 0.000001)
-						if (ppBuffer[x, y] > 0)
+				for (int y = 0; y < 100; y++)
+				//	if (pow(double(x - dps_rhandpoint.X), 2) + pow(double(y - dps_rhandpoint.Y),0.000001)
+				//		if (ppBuffer[x, y] > 0)
 						{
 							dpPoint.X = x;
 							dpPoint.Y = y;
-							m_pMapper->MapDepthPointToColorSpace(dpPoint, ppBuffer[x, y], &cPoint);
+//							cout << ppBuffer[x, y]<<endl;
+//							m_pMapper->MapDepthPointToColorSpace(dpPoint, ppBuffer[x, y], &cPoint);
 //							ColorImages(cPoint.X, cPoint.Y)= Vec4b(0, 0, 255);
 						}
 			}

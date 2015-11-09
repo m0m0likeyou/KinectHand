@@ -41,6 +41,7 @@ private:
 	RGBQUAD*                m_pColorRGBX;
 	CameraSpacePoint        cam_rhandpoint;
 	DepthSpacePoint         dps_rhandpoint;
+	ColorSpacePoint			clr_rhandpoint;
 };
 
 //主函数
@@ -191,8 +192,9 @@ void Kinect::Update()
 //					dps_rhandpoint.X = int(212 - 212 * joints[11].Position.Y*yr);
 
 					hr = pBody->GetJoints(_countof(joints), joints);
-					cam_rhandpoint = joints[11].Position;
+					cam_rhandpoint = joints[7].Position;
 					m_pMapper->MapCameraPointToDepthSpace(cam_rhandpoint, &dps_rhandpoint);
+					m_pMapper->MapCameraPointToColorSpace(cam_rhandpoint, &clr_rhandpoint);
 //					cout << cam_rhandpoint.Z << endl;
 				}
 			}
@@ -298,10 +300,9 @@ void Kinect::Update()
 
 		if (SUCCEEDED(hr))
 		{
-			//ProcessDepth(pBuffer, cBuffer, nWidth, nHeight, cWidth, cHeight, int(cam_rhandpoint.Z*1000 - 50), int(cam_rhandpoint.Z * 1000 + 50));//加入color
+		  //ProcessDepth(pBuffer, cBuffer, nWidth, nHeight, cWidth, cHeight, int(cam_rhandpoint.Z*1000 - 50), int(cam_rhandpoint.Z * 1000 + 50));//加入color
 		  //ProcessDepth( pBuffer, nWidth, nHeight, rhanddepth-50, rhanddepth+50);//手前后
-
-		   ProcessDepth(pBuffer, cBuffer, nWidth, nHeight, cWidth, cHeight, nDepthMinReliableDistance, nDepthMaxDistance);//都显示
+		   ProcessDepth(pBuffer, cBuffer, nWidth, nHeight, cWidth, cHeight, int(cam_rhandpoint.Z * 1000 - 60), int(cam_rhandpoint.Z * 1000 + 60));//都显示
 		}
 
 		SafeRelease(pFrameDescription);
@@ -317,7 +318,7 @@ void Kinect::ProcessDepth(const UINT16* pBuffer, RGBQUAD *cBuffer, int nWidth, i
 	if (m_pDepthRGBX && pBuffer && (nWidth == cDepthWidth) && (nHeight == cDepthHeight))
 		if (m_pColorRGBX &&cBuffer && (cWidth == cColorWidth) && (cHeight == cColorHeight))
 		{
-			cout << "1";
+			cout << "1"<<"       ";
 			RGBQUAD* pRGBX = m_pDepthRGBX;
 			const UINT16* pBufferEnd = pBuffer + (nWidth * nHeight);
 			const UINT16* qBuffer = pBufferEnd - (nWidth * nHeight);
@@ -329,11 +330,9 @@ void Kinect::ProcessDepth(const UINT16* pBuffer, RGBQUAD *cBuffer, int nWidth, i
 			for (int i = 0; i < nWidth; i++)
 				for (int j = 0; j < nHeight; j++)
 				{
-//					ppBuffer[i][j] = depth;
-					outfile << ushort(*qBuffer)<<"|";
+//					outfile << ushort(*qBuffer)<<"|";
 					++qBuffer;
 				}
-//			pBuffer = pBufferEnd - (nWidth*nHeight);
 
 			while (pBuffer < pBufferEnd)
 			{
@@ -342,7 +341,6 @@ void Kinect::ProcessDepth(const UINT16* pBuffer, RGBQUAD *cBuffer, int nWidth, i
 				pRGBX->rgbRed = intensity;
 				pRGBX->rgbGreen = intensity;
 				pRGBX->rgbBlue = intensity;
-//				outfile << ushort(depth)<<"|";
 				++pRGBX;
 				++pBuffer;
 			}
@@ -350,56 +348,45 @@ void Kinect::ProcessDepth(const UINT16* pBuffer, RGBQUAD *cBuffer, int nWidth, i
 			Mat DepthImage(nHeight, nWidth, CV_8UC4, m_pDepthRGBX);
 			Mat_<Vec4b> show = DepthImage.clone();
 
-/*			float sr;
+			float sr;
 			sr = pow((208.32*pow(2.71828182, -1.316*cam_rhandpoint.Z)), 2);
 			for (int x = 0; x < DepthImage.rows; x++)//depth中手部以外抹黑
 				for (int y = 0; y < DepthImage.cols; y++)
 					if (pow(double(x - dps_rhandpoint.Y), 2) + pow(double(y - dps_rhandpoint.X), 2) - sr > 0.00001)
-						show(x, y) = Vec4b(0, 0, 0);*/
+						show(x, y) = Vec4b(0, 0, 0);
 
 			//以下用于手部的绘点
 			/*		for (int x = 0; x < DepthImage.rows; x++)
 			for (int y = 0; y < DepthImage.cols; y++)
 				if (pow(double(x - rhandpoint.x), 2) + pow(double(y - rhandpoint.y), 2) - 25.0 < 0.00000000001)
 					show(x, y) = Vec4b(0, 0, 255);*/
-
 			//==============color image============
 
 			// Draw the data with OpenCV
-
-//			m_pColorRGBX = cBuffer;   //各种赋值方式...最后不是这里的问题- -
-//			Mat ColorImage(cHeight, cWidth, CV_8UC4, m_pColorRGBX);
-//			Mat_<Vec4b> ColorImages = ColorImage.clone();
-
 			Mat ColorImage(cHeight, cWidth, CV_8UC4, cBuffer);
-//			Mat ShowImage(cHeight, cWidth, CV_8UC4, Scalar(0, 0, 0));
 			Mat_<Vec4b> ColorImages = ColorImage.clone();
-//			Mat_<Vec4b> ShowImages = ShowImage.clone();
 
 			DepthSpacePoint dpPoint;
 			ColorSpacePoint cPoint;
-			cPoint.X = 500;
-			cPoint.Y = 500;
 //			cout << ColorImages(cPoint.X, cPoint.Y) << endl;
 
-			for (int x = 0; x < 100; x++)//手部  这一段准备将depth里手的点对应到color里
+     		for (int x = 0; x < ColorImages.rows; x++)//手部  骨骼到彩色
 			{
-//				uchar* data = ColorImage.ptr<uchar>(x);
-				for (int y = 0; y < 100; y++)
-				//	if (pow(double(x - dps_rhandpoint.X), 2) + pow(double(y - dps_rhandpoint.Y),0.000001)
-				//		if (ppBuffer[x, y] > 0)
-						{
-							dpPoint.X = x;
-							dpPoint.Y = y;
-//							cout << ppBuffer[x, y]<<endl;
-//							m_pMapper->MapDepthPointToColorSpace(dpPoint, ppBuffer[x, y], &cPoint);
-//							ColorImages(cPoint.X, cPoint.Y)= Vec4b(0, 0, 255);
-						}
+				for (int y = 0; y < ColorImages.cols; y++)
+					if (pow(double(x - clr_rhandpoint.Y), 2) + pow(double(y - clr_rhandpoint.X), 2) - 32400 > 0.00001)
+						ColorImages(x, y) = Vec4b(0, 0, 0);
 			}
+			for (int x = 0; x < ColorImages.rows; x++)//手部  骨骼到彩色
+			{
+				for (int y = 0; y < ColorImages.cols; y++)
+					if (pow(double(x - clr_rhandpoint.Y), 2) + pow(double(y - clr_rhandpoint.X), 2) - 100 < 0.00001)
+						ColorImages(x, y) = Vec4b(0, 0, 255);
+			}
+			cout << cam_rhandpoint.Z << endl;
 
 //			resize(showImage, showImag, Size(cWidth / 2, cHeight / 2));
-			imshow("ColorImage", ColorImages);
 			imshow("DepthImage", show);
+			imshow("ColorImage", ColorImages);
 
 //			ofstream outfile("E:\\test\\color.txt", ios::in | ios::trunc);
 //			outfile << ColorImages[235,562]<<endl<<ShowImages[235, 562];

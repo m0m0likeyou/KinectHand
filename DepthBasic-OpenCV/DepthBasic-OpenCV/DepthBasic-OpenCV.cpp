@@ -39,9 +39,11 @@ private:
 	ICoordinateMapper*		m_pMapper;         //map
 	RGBQUAD*                m_pDepthRGBX;
 	RGBQUAD*                m_pColorRGBX;
+	RGBQUAD*                m_pBackgroundRGBX;
 	CameraSpacePoint        cam_rhandpoint;
 	DepthSpacePoint         dps_rhandpoint;
 	ColorSpacePoint			clr_rhandpoint;
+	DepthSpacePoint*        m_pDepthCoordinates;//深度到彩色用
 };
 
 //主函数
@@ -69,6 +71,8 @@ Kinect::Kinect()
 	m_pColorFrameReader = NULL;  //后加
 	m_pDepthRGBX = new RGBQUAD[cDepthWidth * cDepthHeight];// create heap storage for color pixel data in RGBX format
 	m_pColorRGBX = new RGBQUAD[cColorWidth * cColorHeight];
+	m_pBackgroundRGBX = new RGBQUAD[cColorWidth * cColorHeight];
+	m_pDepthCoordinates = new DepthSpacePoint[cColorWidth * cColorHeight];
 }
 
 Kinect::~Kinect()
@@ -79,6 +83,8 @@ Kinect::~Kinect()
 		m_pDepthRGBX = NULL;
 		delete[] m_pColorRGBX;
 		m_pColorRGBX = NULL;
+		delete[] m_pBackgroundRGBX;
+		m_pBackgroundRGBX = NULL;
 	}
 
 	SafeRelease(m_pDepthFrameReader);// done with color frame reader
@@ -143,6 +149,7 @@ HRESULT	Kinect::InitKinect()
 			m_pKinectSensor->get_CoordinateMapper(&m_pMapper);
 		}
 	}
+
 
 	if (!m_pKinectSensor || FAILED(hr))
 	{
@@ -322,71 +329,117 @@ void Kinect::ProcessDepth(const UINT16* pBuffer, RGBQUAD *cBuffer, int nWidth, i
 			RGBQUAD* pRGBX = m_pDepthRGBX;
 			const UINT16* pBufferEnd = pBuffer + (nWidth * nHeight);
 			const UINT16* qBuffer = pBufferEnd - (nWidth * nHeight);
-			USHORT ppBuffer[424][512] = {};
-			ofstream outfile("E:\\test\\12345678.txt", ios::in | ios::trunc);
+//			USHORT ppBuffer[424][512] = {};
+//			ofstream outfile("E:\\test\\12345678.txt", ios::in | ios::trunc);
 			int i = 0;
 			int j = 0;
 
-			for (int i = 0; i < nWidth; i++)
-				for (int j = 0; j < nHeight; j++)
-				{
+//			for (int i = 0; i < nWidth; i++)
+//				for (int j = 0; j < nHeight; j++)
+//				{
 //					outfile << ushort(*qBuffer)<<"|";
-					++qBuffer;
-				}
+//					++qBuffer;
+//				}
 
 			while (pBuffer < pBufferEnd)
 			{
 				USHORT depth = *pBuffer;
-				BYTE intensity = static_cast<BYTE>((depth >= nMinDepth) && (depth <= nMaxDepth) ? (depth % 255):0);
-				pRGBX->rgbRed = intensity;
-				pRGBX->rgbGreen = intensity;
-				pRGBX->rgbBlue = intensity;
+				BYTE intensity = static_cast<BYTE>((depth >= nMinDepth) && (depth <= nMaxDepth) ? 255 : 0);// (depth % 400) : 0);  //把黑白改成黄绿,从Z的层面过滤
+				pRGBX->rgbRed = intensity;// int(6.5*intensity);
+				pRGBX->rgbGreen = intensity;//220*(intensity > 0 ? 1 : 0);
+				pRGBX->rgbBlue = intensity;// 0;
 				++pRGBX;
 				++pBuffer;
 			}
 
 			Mat DepthImage(nHeight, nWidth, CV_8UC4, m_pDepthRGBX);
 			Mat_<Vec4b> show = DepthImage.clone();
-
+			//show.at<int>(0, 1);
 			float sr;
 			sr = pow((208.32*pow(2.71828182, -1.316*cam_rhandpoint.Z)), 2);
 			for (int x = 0; x < DepthImage.rows; x++)//depth中手部以外抹黑
 				for (int y = 0; y < DepthImage.cols; y++)
+				{
 					if (pow(double(x - dps_rhandpoint.Y), 2) + pow(double(y - dps_rhandpoint.X), 2) - sr > 0.00001)
 						show(x, y) = Vec4b(0, 0, 0);
+				}
+			
+/*			cout << show(180, 150)<<endl;
+			uchar* p;
+			p =DepthImage.ptr<uchar>(180);
+			cout << (int)p[150 * 4];  那啥，输出该点0通道值*/
 
-			//以下用于手部的绘点
-			/*		for (int x = 0; x < DepthImage.rows; x++)
-			for (int y = 0; y < DepthImage.cols; y++)
-				if (pow(double(x - rhandpoint.x), 2) + pow(double(y - rhandpoint.y), 2) - 25.0 < 0.00000000001)
-					show(x, y) = Vec4b(0, 0, 255);*/
+			//以下用于深度中手部的绘点
+/*			for (int x = 0; x < DepthImage.rows; x++)
+				for (int y = 0; y < DepthImage.cols; y++)
+					if (pow(double(x - rhandpoint.x), 2) + pow(double(y - rhandpoint.y), 2) - 25.0 < 0.00000000001)
+						show(x, y) = Vec4b(0, 0, 255);*/
 			//==============color image============
 
 			// Draw the data with OpenCV
 			Mat ColorImage(cHeight, cWidth, CV_8UC4, cBuffer);
 			Mat_<Vec4b> ColorImages = ColorImage.clone();
 
-			DepthSpacePoint dpPoint;
-			ColorSpacePoint cPoint;
-//			cout << ColorImages(cPoint.X, cPoint.Y) << endl;
+//=================用于切手
+			DOUBLE cr = 110.03*pow(cam_rhandpoint.Z, -1.27);
+			cr = pow(cr, 2);
+//     		for (int x = 0; x < ColorImages.rows; x++)//手部  骨骼到彩色
+//			{
+//				for (int y = 0; y < ColorImages.cols; y++)
+//					if (pow(double(x - clr_rhandpoint.Y), 2) + pow(double(y - clr_rhandpoint.X), 2) - cr > 0.00001)
+//						ColorImages(x, y) = Vec4b(0, 0, 0);
+//			}
+//			for (int x = 0; x < ColorImages.rows; x++)//手部  骨骼到彩色
+//			{
+//				for (int y = 0; y < ColorImages.cols; y++)
+//					if (pow(double(x - clr_rhandpoint.Y), 2) + pow(double(y - clr_rhandpoint.X), 2) - 100 < 0.00001)
+//						ColorImages(x, y) = Vec4b(0, 0, 255);
+//			}
+//			cout << cam_rhandpoint.Z << endl;
 
-     		for (int x = 0; x < ColorImages.rows; x++)//手部  骨骼到彩色
+//================================配对，外来代码
+
+			if (m_pBackgroundRGBX) //初始化background
 			{
-				for (int y = 0; y < ColorImages.cols; y++)
-					if (pow(double(x - clr_rhandpoint.Y), 2) + pow(double(y - clr_rhandpoint.X), 2) - 32400 > 0.00001)
-						ColorImages(x, y) = Vec4b(0, 0, 0);
+				const RGBQUAD c_green = { 0, 0, 0 };
+				// Fill in with a background colour of green if we can't load the background image
+				for (int i = 0; i < cColorWidth * cColorHeight; ++i)
+				{
+					m_pBackgroundRGBX[i] = c_green;
+				}
 			}
-			for (int x = 0; x < ColorImages.rows; x++)//手部  骨骼到彩色
-			{
-				for (int y = 0; y < ColorImages.cols; y++)
-					if (pow(double(x - clr_rhandpoint.Y), 2) + pow(double(y - clr_rhandpoint.X), 2) - 100 < 0.00001)
-						ColorImages(x, y) = Vec4b(0, 0, 255);
-			}
-			cout << cam_rhandpoint.Z << endl;
+
+			HRESULT hr = m_pMapper->MapColorFrameToDepthSpace(nWidth * nHeight, (UINT16*)qBuffer, cWidth * cHeight, m_pDepthCoordinates);
+			if (SUCCEEDED(hr))
+			 for (int colorIndex = 0; colorIndex < (cColorWidth*cColorHeight); ++colorIndex)
+            {
+                // default setting source to copy from the background pixel
+                const RGBQUAD* pSrc = m_pBackgroundRGBX + colorIndex;
+                DepthSpacePoint p = m_pDepthCoordinates[colorIndex];
+                if (p.X != -numeric_limits<float>::infinity() && p.Y != -numeric_limits<float>::infinity())
+                {
+                    int depthX = static_cast<int>(p.X + 0.5f);
+                    int depthY = static_cast<int>(p.Y + 0.5f);
+
+//                  if ((depthX >= 0 && depthX < cDepthWidth) && (depthY >= 0 && depthY < cDepthHeight))
+					if ((depthX >= 0 && depthX < cDepthWidth) && (depthY >= 0 && depthY < cDepthHeight))
+                    {
+						uchar* p;
+						p = DepthImage.ptr<uchar>(depthY);
+						int pdepth=p[depthX * 4];
+                        if (pdepth>0)
+                        {
+							pSrc = m_pColorRGBX + colorIndex;
+                        }
+                    }
+                }
+            }
+			Mat ColorImagess(cHeight, cWidth, CV_8UC4, m_pBackgroundRGBX);
 
 //			resize(showImage, showImag, Size(cWidth / 2, cHeight / 2));
 			imshow("DepthImage", show);
-			imshow("ColorImage", ColorImages);
+//			imshow("ColorImage", ColorImages);
+			imshow("ColorImage",ColorImagess);
 
 //			ofstream outfile("E:\\test\\color.txt", ios::in | ios::trunc);
 //			outfile << ColorImages[235,562]<<endl<<ShowImages[235, 562];

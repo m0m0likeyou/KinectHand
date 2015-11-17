@@ -1,15 +1,19 @@
-﻿生成启动时间为 2015/11/17 11:29:10。
+﻿生成启动时间为 2015/11/17 23:14:12。
      1>项目“C:\Users\yours\Documents\GitHub\KinectHand\DepthBasic-OpenCV\DepthBasic-OpenCV\DepthBasic-OpenCV.vcxproj”在节点 2 上(Build 个目标)。
      1>ClCompile:
          C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /sdl /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Yu"stdafx.h" /Fp"Debug\DepthBasic-OpenCV.pch" /Fo"Debug\\" /Fd"Debug\vc140.pdb" /Gd /TP /analyze- /errorReport:prompt "DepthBasic-OpenCV.cpp"
          DepthBasic-OpenCV.cpp
-     1>c:\users\yours\documents\github\kinecthand\depthbasic-opencv\depthbasic-opencv\depthbasic-opencv.cpp(558): warning C4101: “szStatusMessage”: 未引用的局部变量
-       Link:
-         C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\yours\Documents\GitHub\KinectHand\DepthBasic-OpenCV\Debug\DepthBasic-OpenCV.exe" /INCREMENTAL /NOLOGO kinect20.lib opencv_core2410d.lib opencv_highgui2410d.lib opencv_imgproc2410d.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /Debug /PDB:"C:\Users\yours\Documents\GitHub\KinectHand\DepthBasic-OpenCV\Debug\DepthBasic-OpenCV.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\yours\Documents\GitHub\KinectHand\DepthBasic-OpenCV\Debug\DepthBasic-OpenCV.lib" /MACHINE:X86 "Debug\DepthBasic-OpenCV.obj"
-         Debug\stdafx.obj
-         DepthBasic-OpenCV.vcxproj -> C:\Users\yours\Documents\GitHub\KinectHand\DepthBasic-OpenCV\Debug\DepthBasic-OpenCV.exe
-     1>已完成生成项目“C:\Users\yours\Documents\GitHub\KinectHand\DepthBasic-OpenCV\DepthBasic-OpenCV\DepthBasic-OpenCV.vcxproj”(Build 个目标)的操作。
+     1>c:\users\yours\documents\github\kinecthand\depthbasic-opencv\depthbasic-opencv\depthbasic-opencv.cpp(297): warning C4244: “=”: 从“float”转换到“USHORT”，可能丢失数据
+     1>c:\users\yours\documents\github\kinecthand\depthbasic-opencv\depthbasic-opencv\depthbasic-opencv.cpp(303): warning C4244: “=”: 从“float”转换到“USHORT”，可能丢失数据
+     1>c:\users\yours\documents\github\kinecthand\depthbasic-opencv\depthbasic-opencv\depthbasic-opencv.cpp(613): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>c:\users\yours\documents\github\kinecthand\depthbasic-opencv\depthbasic-opencv\depthbasic-opencv.cpp(701): error C2374: “pBufferEnd”: 重定义；多次初始化
+         c:\users\yours\documents\github\kinecthand\depthbasic-opencv\depthbasic-opencv\depthbasic-opencv.cpp(595): note: 参见“pBufferEnd”的声明
+     1>c:\users\yours\documents\github\kinecthand\depthbasic-opencv\depthbasic-opencv\depthbasic-opencv.cpp(714): error C2374: “DepthImage”: 重定义；多次初始化
+         c:\users\yours\documents\github\kinecthand\depthbasic-opencv\depthbasic-opencv\depthbasic-opencv.cpp(609): note: 参见“DepthImage”的声明
+     1>c:\users\yours\documents\github\kinecthand\depthbasic-opencv\depthbasic-opencv\depthbasic-opencv.cpp(715): error C2371: “show”: 重定义；不同的基类型
+         c:\users\yours\documents\github\kinecthand\depthbasic-opencv\depthbasic-opencv\depthbasic-opencv.cpp(610): note: 参见“show”的声明
+     1>已完成生成项目“C:\Users\yours\Documents\GitHub\KinectHand\DepthBasic-OpenCV\DepthBasic-OpenCV\DepthBasic-OpenCV.vcxproj”(Build 个目标)的操作 - 失败。
 
-已成功生成。
+生成失败。
 
-已用时间 00:00:01.68
+已用时间 00:00:01.26

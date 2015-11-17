@@ -33,7 +33,7 @@ public:
 	void					ProcessFrame(INT64 nTime,
 										const UINT16* pDepthBuffer, int nDepthHeight, int nDepthWidth, USHORT nMinDepth, USHORT nMaxDepth,
 										const RGBQUAD* pColorBuffer, int nColorWidth, int nColorHeight,
-										int nBodyCount, IBody** ppBodies,
+										int nBodyCount, IBody** pBodies,
 										const BYTE* pBodyIndexBuffer, int nBodyIndexWidth, int nBodyIndexHeight);
 private:
 
@@ -265,7 +265,7 @@ void Kinect::Update()
 		UINT nColorBufferSize = 0;
 		RGBQUAD *pColorBuffer = NULL;
 
-		IBody* ppBodies[BODY_COUNT] = { 0 };
+		IBody* pBodies[BODY_COUNT] = { 0 };
 
 		IFrameDescription* pBodyIndexFrameDescription = NULL;
 		int nBodyIndexWidth = 0;
@@ -294,11 +294,13 @@ void Kinect::Update()
 		if (SUCCEEDED(hr))
 		{
 			hr = pDepthFrame->get_DepthMinReliableDistance(&nDepthMinReliableDistance);
+			nDepthMinReliableDistance = cam_rhandpoint.Z * 1000 - 50;
 		}
 
 		if (SUCCEEDED(hr))
 		{
-			nDepthMaxDistance = USHRT_MAX;
+//			nDepthMaxDistance = USHRT_MAX;
+			nDepthMaxDistance = cam_rhandpoint.Z * 1000 + 50;
 		}
 
 		if (SUCCEEDED(hr))
@@ -351,9 +353,35 @@ void Kinect::Update()
 		// get body index frame data
 		if (SUCCEEDED(hr))
 		{
-			hr = pBodyFrame->GetAndRefreshBodyData(_countof(ppBodies), ppBodies);
+			hr = pBodyFrame->GetAndRefreshBodyData(_countof(pBodies), pBodies);
 		}
-
+		if (SUCCEEDED(hr))
+		{
+			for (int i = 0; i < BODY_COUNT; ++i)
+			{
+				IBody* pBody = pBodies[i];
+				if (pBody)
+				{
+					BOOLEAN bTracked = false;
+					hr = pBody->get_IsTracked(&bTracked);//判断是否检测到这个人（因为bodyCount是6啊orz）
+					if (bTracked)
+					{
+						Joint joints[JointType_Count];
+//						HandState leftHandState = HandState_Unknown; //获取手的状态,用不上
+//						HandState rightHandState = HandState_Unknown;
+//						pBody->get_HandRightState(&rightHandState); 
+//						yr =  -0.647*joints[11].Position.Z + 2.1453;  //转换系数  系统自带真好用/微笑
+//						xr = -0.6443*joints[11].Position.Z + 1.9619;
+//						dps_rhandpoint.Y = int(256 + 256 * joints[11].Position.X*xr);//图像上Y是body的x
+//						dps_rhandpoint.X = int(212 - 212 * joints[11].Position.Y*yr);
+						pBody->GetJoints(_countof(joints), joints);
+						cam_rhandpoint = joints[7].Position;
+						m_pMapper->MapCameraPointToDepthSpace(cam_rhandpoint, &dps_rhandpoint);
+						m_pMapper->MapCameraPointToColorSpace(cam_rhandpoint, &clr_rhandpoint);
+					}
+				}
+			}
+		}
 		if (SUCCEEDED(hr))
 		{
 			hr = pBodyIndexFrame->get_FrameDescription(&pBodyIndexFrameDescription);
@@ -379,7 +407,7 @@ void Kinect::Update()
 		{
 			ProcessFrame(nDepthTime, pDepthBuffer, nDepthWidth, nDepthHeight, nDepthMinReliableDistance, nDepthMaxDistance,
 				pColorBuffer, nColorWidth, nColorHeight,
-				BODY_COUNT, ppBodies,
+				BODY_COUNT, pBodies,
 				pBodyIndexBuffer, nBodyIndexWidth, nBodyIndexHeight);
 		}
 
@@ -387,9 +415,9 @@ void Kinect::Update()
 		SafeRelease(pColorFrameDescription);
 		SafeRelease(pBodyIndexFrameDescription);
 
-		for (int i = 0; i < _countof(ppBodies); ++i)
+		for (int i = 0; i < _countof(pBodies); ++i)
 		{
-			SafeRelease(ppBodies[i]);
+			SafeRelease(pBodies[i]);
 		}
 	}
 
@@ -548,7 +576,7 @@ void Kinect::Update()
 void Kinect::ProcessFrame(INT64 nTime,
 						const UINT16* pDepthBuffer, int nDepthWidth, int nDepthHeight, USHORT nMinDepth, USHORT nMaxDepth,
 						const RGBQUAD* pColorBuffer, int nColorWidth, int nColorHeight,
-						int nBodyCount, IBody** ppBodies,
+						int nBodyCount, IBody** pBodies,
 						const BYTE* pBodyIndexBuffer, int nBodyIndexWidth, int nBodyIndexHeight)
 {
 	// Make sure we've received valid data
@@ -562,39 +590,97 @@ void Kinect::ProcessFrame(INT64 nTime,
 		pBodyIndexBuffer && (nBodyIndexWidth == cDepthWidth) && (nBodyIndexHeight == cDepthHeight) &&
 		m_pDepthRGBX)
 	{
-			HRESULT hr = m_pMapper->MapColorFrameToDepthSpace(nDepthWidth * nDepthHeight, (UINT16*)pDepthBuffer, nColorWidth * nColorHeight, m_pDepthCoordinates);
-			if (FAILED(hr))
+		//depth&color
+		RGBQUAD* pRGBXX = m_pDepthRGBX;
+		const UINT16* pBufferEnd = pDepthBuffer + (nDepthWidth * nDepthHeight);
+		const UINT16* qBuffer = pBufferEnd - (nDepthWidth * nDepthHeight);
+
+		while (qBuffer < pBufferEnd)
+		{
+			USHORT depth = *qBuffer;
+			BYTE intensity = static_cast<BYTE>((depth >= nMinDepth) && (depth <= nMaxDepth) ? 255 : 0);// (depth % 400) : 0);  //把黑白改成黄绿,从Z的层面过滤
+			pRGBXX->rgbRed = intensity;// int(6.5*intensity);
+			pRGBXX->rgbGreen = intensity;//220*(intensity > 0 ? 1 : 0);
+			pRGBXX->rgbBlue = intensity;// 0;
+			++pRGBXX;
+			++qBuffer;
+		}
+
+		Mat DepthImage(nDepthHeight, nDepthWidth, CV_8UC4, m_pDepthRGBX);
+		Mat_<Vec4b> show = DepthImage.clone();
+		//show.at<int>(0, 1);
+		float sr;
+		sr = pow((208.32*pow(2.71828182, -1.316*cam_rhandpoint.Z)), 2);
+		for (int x = 0; x < DepthImage.rows; x++)//depth中手部以外抹黑
+			for (int y = 0; y < DepthImage.cols; y++)
 			{
-				return;
+				if (pow(double(x - dps_rhandpoint.Y), 2) + pow(double(y - dps_rhandpoint.X), 2) - sr > 0.00001)
+					show(x, y) = Vec4b(0, 0, 0);
 			}
-			// loop over output pixels
-			for (int colorIndex = 0; colorIndex < (nColorWidth*nColorHeight); ++colorIndex)
+		imshow("de", show);
+
+		//===========================
+		HRESULT hr = m_pMapper->MapColorFrameToDepthSpace(nDepthWidth * nDepthHeight, (UINT16*)pDepthBuffer, nColorWidth * nColorHeight, m_pDepthCoordinates);
+		if (FAILED(hr))
+		{
+			return;
+		}
+		//以depth为条件循环
+		for (int colorIndex = 0; colorIndex < (nColorWidth*nColorHeight); ++colorIndex)
+		{
+			// default setting source to copy from the background pixel
+			const RGBQUAD* pSrc = m_pBackgroundRGBX + colorIndex;
+			DepthSpacePoint p = m_pDepthCoordinates[colorIndex];
+			// Values that are negative infinity means it is an invalid color to depth mapping so we
+			// skip processing for this pixel
+			if (p.X != -std::numeric_limits<float>::infinity() && p.Y != -std::numeric_limits<float>::infinity())
 			{
-				// default setting source to copy from the background pixel
-				const RGBQUAD* pSrc = m_pBackgroundRGBX + colorIndex;
+				int depthX = static_cast<int>(p.X + 0.5f);
+				int depthY = static_cast<int>(p.Y + 0.5f);
 
-				DepthSpacePoint p = m_pDepthCoordinates[colorIndex];
-
-				// Values that are negative infinity means it is an invalid color to depth mapping so we
-				// skip processing for this pixel
-				if (p.X != -std::numeric_limits<float>::infinity() && p.Y != -std::numeric_limits<float>::infinity())
+				if ((depthX >= 0 && depthX < nDepthWidth) && (depthY >= 0 && depthY < nDepthHeight))
 				{
-					int depthX = static_cast<int>(p.X + 0.5f);
-					int depthY = static_cast<int>(p.Y + 0.5f);
+					BYTE player = pBodyIndexBuffer[depthX + (depthY * cDepthWidth)];
+					// if we're tracking a player for the current pixel, draw from the color camera
 
-					if ((depthX >= 0 && depthX < nDepthWidth) && (depthY >= 0 && depthY < nDepthHeight))
+					if (player != 0xff)
 					{
-						BYTE player = pBodyIndexBuffer[depthX + (depthY * cDepthWidth)];
-						// if we're tracking a player for the current pixel, draw from the color camera
-						if (player != 0xff)
-						{
-							pSrc = m_pColorRGBX + colorIndex;
-						}
+						pSrc = m_pColorRGBX + colorIndex;
 					}
 				}
-				m_pOutputRGBX[colorIndex] = *pSrc;
 			}
-		}//确保参数都准确
+			m_pOutputRGBX[colorIndex] = *pSrc;
+		}
+
+		/*
+		//以BodyIndex为条件循环
+		for (int colorIndex = 0; colorIndex < (nColorWidth*nColorHeight); ++colorIndex)
+		{
+			// default setting source to copy from the background pixel
+			const RGBQUAD* pSrc = m_pBackgroundRGBX + colorIndex;
+
+			DepthSpacePoint p = m_pDepthCoordinates[colorIndex];
+
+			// Values that are negative infinity means it is an invalid color to depth mapping so we
+			// skip processing for this pixel
+			if (p.X != -std::numeric_limits<float>::infinity() && p.Y != -std::numeric_limits<float>::infinity())
+			{
+				int depthX = static_cast<int>(p.X + 0.5f);
+				int depthY = static_cast<int>(p.Y + 0.5f);
+
+				if ((depthX >= 0 && depthX < nDepthWidth) && (depthY >= 0 && depthY < nDepthHeight))
+				{
+					BYTE player = pBodyIndexBuffer[depthX + (depthY * cDepthWidth)];
+					// if we're tracking a player for the current pixel, draw from the color camera
+					if (player != 0xff)
+					{
+						pSrc = m_pColorRGBX + colorIndex;
+					}
+				}
+			}
+			m_pOutputRGBX[colorIndex] = *pSrc;
+		}*/
+	//确保参数都准确
 
 		 //imshow("color", m_Color);
 
@@ -627,12 +713,10 @@ void Kinect::ProcessFrame(INT64 nTime,
 		Mat DepthImage(nDepthHeight, nDepthWidth, CV_8UC4, m_pDepthRGBX);
 		Mat show = DepthImage.clone();
 		imshow("DepthImage", show);
-
-
 		waitKey(1);
 	}
+}
 /* 		{
-			cout << "1"<<"       ";
 			RGBQUAD* pRGBX = m_pDepthRGBX;
 			const UINT16* pBufferEnd = pBuffer + (nWidth * nHeight);
 			const UINT16* qBuffer = pBufferEnd - (nWidth * nHeight);

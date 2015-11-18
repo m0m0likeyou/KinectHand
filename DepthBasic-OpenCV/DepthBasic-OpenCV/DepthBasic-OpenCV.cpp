@@ -293,14 +293,15 @@ void Kinect::Update()
 
 		if (SUCCEEDED(hr))
 		{
+			;
 			hr = pDepthFrame->get_DepthMinReliableDistance(&nDepthMinReliableDistance);
-			nDepthMinReliableDistance = cam_rhandpoint.Z * 1000 - 50;
+			nDepthMinReliableDistance = cam_rhandpoint.Z * 1000 - 100;
 		}
 
 		if (SUCCEEDED(hr))
 		{
 //			nDepthMaxDistance = USHRT_MAX;
-			nDepthMaxDistance = cam_rhandpoint.Z * 1000 + 50;
+			nDepthMaxDistance = cam_rhandpoint.Z * 1000 + 100;
 		}
 
 		if (SUCCEEDED(hr))
@@ -606,18 +607,26 @@ void Kinect::ProcessFrame(INT64 nTime,
 			++qBuffer;
 		}
 
+		//================================
+		//通过depth把手抠出来
 		Mat DepthImage(nDepthHeight, nDepthWidth, CV_8UC4, m_pDepthRGBX);
-		Mat_<Vec4b> show = DepthImage.clone();
-		//show.at<int>(0, 1);
 		float sr;
 		sr = pow((208.32*pow(2.71828182, -1.316*cam_rhandpoint.Z)), 2);
+		RGBQUAD* pDepthRGBXX = m_pDepthRGBX;
 		for (int x = 0; x < DepthImage.rows; x++)//depth中手部以外抹黑
 			for (int y = 0; y < DepthImage.cols; y++)
 			{
 				if (pow(double(x - dps_rhandpoint.Y), 2) + pow(double(y - dps_rhandpoint.X), 2) - sr > 0.00001)
-					show(x, y) = Vec4b(0, 0, 0);
+				{
+					pDepthRGBXX->rgbBlue = 0;
+					pDepthRGBXX->rgbGreen = 0;
+					pDepthRGBXX->rgbRed = 0;
+				}
+				++pDepthRGBXX;
 			}
-		imshow("de", show);
+		Mat_<Vec4b> show = DepthImage.clone();
+		cout << show(dps_rhandpoint.Y, dps_rhandpoint.X)<< endl;
+		imshow("DEPTH", show);
 
 		//===========================
 		HRESULT hr = m_pMapper->MapColorFrameToDepthSpace(nDepthWidth * nDepthHeight, (UINT16*)pDepthBuffer, nColorWidth * nColorHeight, m_pDepthCoordinates);
@@ -637,13 +646,14 @@ void Kinect::ProcessFrame(INT64 nTime,
 			{
 				int depthX = static_cast<int>(p.X + 0.5f);
 				int depthY = static_cast<int>(p.Y + 0.5f);
-
 				if ((depthX >= 0 && depthX < nDepthWidth) && (depthY >= 0 && depthY < nDepthHeight))
 				{
 					BYTE player = pBodyIndexBuffer[depthX + (depthY * cDepthWidth)];
+					uchar* p;
+					p = DepthImage.ptr<uchar>(depthY);
 					// if we're tracking a player for the current pixel, draw from the color camera
 
-					if (player != 0xff)
+					if ((int)p[depthX * 4] != 0)
 					{
 						pSrc = m_pColorRGBX + colorIndex;
 					}
@@ -690,29 +700,9 @@ void Kinect::ProcessFrame(INT64 nTime,
 		Mat showImage;
 		resize(m_Color, showImage, Size(cColorWidth / 2, cColorHeight / 2));
 		imshow("Color", showImage);////imshow("ColorImage", ColorImage);
-		imshow("Depth", m_Depth);
+//		imshow("Depth", m_Depth);
 		imshow("BodyIndex", m_BodyIndex);
 		imshow("Coloraa", ColorImages);
-
-
-		RGBQUAD* pRGBX = m_pDepthRGBX;
-		// end pixel is start + width*height - 1
-		const UINT16* pBufferEnd = pDepthBuffer + (nDepthWidth * nDepthHeight);
-		while (pDepthBuffer < pBufferEnd)
-		{
-			USHORT depth = *pDepthBuffer;
-			BYTE intensity = static_cast<BYTE>((depth >= nMinDepth) && (depth <= nMaxDepth) ? (depth % 256) : 0);
-			pRGBX->rgbRed = intensity;
-			pRGBX->rgbGreen = intensity;
-			pRGBX->rgbBlue = intensity;
-			++pRGBX;
-			++pDepthBuffer;
-		}
-
-		// Draw the data nDepthHeight OpenCV
-		Mat DepthImage(nDepthHeight, nDepthWidth, CV_8UC4, m_pDepthRGBX);
-		Mat show = DepthImage.clone();
-		imshow("DepthImage", show);
 		waitKey(1);
 	}
 }

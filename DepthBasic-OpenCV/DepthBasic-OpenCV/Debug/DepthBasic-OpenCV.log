@@ -1,20 +1,19 @@
-﻿生成启动时间为 2015/11/2 10:30:19。
-     1>项目“C:\Users\yours\Documents\GitHub\DepthBasic-OpenCV\DepthBasic-OpenCV\DepthBasic-OpenCV.vcxproj”在节点 2 上(Build 个目标)。
+﻿生成启动时间为 2015/11/3 9:31:41。
+     1>项目“C:\Users\yours\Documents\GitHub\KinectHand\DepthBasic-OpenCV\DepthBasic-OpenCV\DepthBasic-OpenCV.vcxproj”在节点 2 上(Build 个目标)。
      1>ClCompile:
-         C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /sdl /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Yc"stdafx.h" /Fp"Debug\DepthBasic-OpenCV.pch" /Fo"Debug\\" /Fd"Debug\vc140.pdb" /Gd /TP /analyze- /errorReport:prompt stdafx.cpp
-         stdafx.cpp
          C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /sdl /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Yu"stdafx.h" /Fp"Debug\DepthBasic-OpenCV.pch" /Fo"Debug\\" /Fd"Debug\vc140.pdb" /Gd /TP /analyze- /errorReport:prompt "DepthBasic-OpenCV.cpp"
          DepthBasic-OpenCV.cpp
-     1>c:\users\yours\documents\github\depthbasic-opencv\depthbasic-opencv\depthbasic-opencv.cpp(227): warning C4244: “=”: 从“float”转换到“int”，可能丢失数据
-     1>c:\users\yours\documents\github\depthbasic-opencv\depthbasic-opencv\depthbasic-opencv.cpp(228): warning C4244: “=”: 从“double”转换到“FLOAT”，可能丢失数据
-     1>c:\users\yours\documents\github\depthbasic-opencv\depthbasic-opencv\depthbasic-opencv.cpp(229): warning C4244: “=”: 从“double”转换到“FLOAT”，可能丢失数据
-     1>c:\users\yours\documents\github\depthbasic-opencv\depthbasic-opencv\depthbasic-opencv.cpp(413): warning C4101: “dpPoint”: 未引用的局部变量
+     1>c:\users\yours\documents\github\kinecthand\depthbasic-opencv\depthbasic-opencv\depthbasic-opencv.cpp(334): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>c:\users\yours\documents\github\kinecthand\depthbasic-opencv\depthbasic-opencv\depthbasic-opencv.cpp(365): warning C4244: “参数”: 从“float”转换到“int”，可能丢失数据
+     1>c:\users\yours\documents\github\kinecthand\depthbasic-opencv\depthbasic-opencv\depthbasic-opencv.cpp(367): warning C4244: “初始化”: 从“float”转换到“int”，可能丢失数据
+     1>c:\users\yours\documents\github\kinecthand\depthbasic-opencv\depthbasic-opencv\depthbasic-opencv.cpp(374): warning C4244: “=”: 从“int”转换到“float”，可能丢失数据
+     1>c:\users\yours\documents\github\kinecthand\depthbasic-opencv\depthbasic-opencv\depthbasic-opencv.cpp(375): warning C4244: “=”: 从“int”转换到“float”，可能丢失数据
        Link:
-         C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\yours\Documents\GitHub\DepthBasic-OpenCV\Debug\DepthBasic-OpenCV.exe" /INCREMENTAL /NOLOGO kinect20.lib opencv_core2410d.lib opencv_highgui2410d.lib opencv_imgproc2410d.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /Debug /PDB:"C:\Users\yours\Documents\GitHub\DepthBasic-OpenCV\Debug\DepthBasic-OpenCV.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\yours\Documents\GitHub\DepthBasic-OpenCV\Debug\DepthBasic-OpenCV.lib" /MACHINE:X86 "Debug\DepthBasic-OpenCV.obj"
+         C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\yours\Documents\GitHub\KinectHand\DepthBasic-OpenCV\Debug\DepthBasic-OpenCV.exe" /INCREMENTAL /NOLOGO kinect20.lib opencv_core2410d.lib opencv_highgui2410d.lib opencv_imgproc2410d.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /Debug /PDB:"C:\Users\yours\Documents\GitHub\KinectHand\DepthBasic-OpenCV\Debug\DepthBasic-OpenCV.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\yours\Documents\GitHub\KinectHand\DepthBasic-OpenCV\Debug\DepthBasic-OpenCV.lib" /MACHINE:X86 "Debug\DepthBasic-OpenCV.obj"
          Debug\stdafx.obj
-         DepthBasic-OpenCV.vcxproj -> C:\Users\yours\Documents\GitHub\DepthBasic-OpenCV\Debug\DepthBasic-OpenCV.exe
-     1>已完成生成项目“C:\Users\yours\Documents\GitHub\DepthBasic-OpenCV\DepthBasic-OpenCV\DepthBasic-OpenCV.vcxproj”(Build 个目标)的操作。
+         DepthBasic-OpenCV.vcxproj -> C:\Users\yours\Documents\GitHub\KinectHand\DepthBasic-OpenCV\Debug\DepthBasic-OpenCV.exe
+     1>已完成生成项目“C:\Users\yours\Documents\GitHub\KinectHand\DepthBasic-OpenCV\DepthBasic-OpenCV\DepthBasic-OpenCV.vcxproj”(Build 个目标)的操作。
 
 已成功生成。
 
-已用时间 00:00:02.71
+已用时间 00:00:02.46
